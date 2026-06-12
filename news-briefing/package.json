@@ -1,0 +1,15 @@
+{
+  "name": "news-briefing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "매일/매주 보유 종목·핫이슈 뉴스를 Claude로 요약해 디스코드로 보내는 브리핑 봇",
+  "scripts": {
+    "daily": "node src/daily.js",
+    "weekly": "node src/weekly.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "rss-parser": "^3.13.0"
+  }
+}
