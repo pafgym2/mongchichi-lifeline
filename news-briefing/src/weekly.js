@@ -1,11 +1,12 @@
 import { STOCKS, MARKET_QUERIES } from "./config.js";
 import { fetchNews } from "./fetchNews.js";
 import { weeklyOutlook } from "./summarize.js";
-import { postToDiscord, splitForEmbed } from "./discord.js";
+import { pushToLine, splitText } from "./line.js";
 
-const WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
-if (!WEBHOOK) {
-  console.error("DISCORD_WEBHOOK_URL 환경변수가 없습니다.");
+const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const USER_ID = process.env.LINE_USER_ID;
+if (!TOKEN || !USER_ID) {
+  console.error("LINE_CHANNEL_ACCESS_TOKEN / LINE_USER_ID 환경변수가 없습니다.");
   process.exit(1);
 }
 
@@ -34,14 +35,8 @@ async function main() {
   const monday = new Date().toLocaleDateString("ko-KR", {
     timeZone: "Asia/Seoul",
   });
-  const chunks = splitForEmbed(outlook, 4000);
-  const embeds = chunks.map((c, i) => ({
-    title: i === 0 ? `🔮 주간 전망 — ${monday}` : "🔮 주간 전망 (계속)",
-    description: c,
-    color: 0x9b59b6,
-  }));
-
-  await postToDiscord(WEBHOOK, { username: "🔮 주간 전망", embeds });
+  const full = `🔮 주간 전망\n${monday}\n\n${outlook}`;
+  await pushToLine(TOKEN, USER_ID, splitText(full, 4500));
   console.log("주간 전망 전송 완료");
 }
 
