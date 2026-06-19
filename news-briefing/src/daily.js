@@ -1,5 +1,5 @@
 import { STOCKS, HOT_CATEGORIES, MAX_HOT_ISSUES } from "./config.js";
-import { fetchNews } from "./fetchNews.js";
+import { fetchNews, fetchTopHeadlines } from "./fetchNews.js";
 import { summarizeBatch, selectHotIssues } from "./summarize.js";
 import { pushToLine, splitText } from "./line.js";
 
@@ -29,12 +29,24 @@ async function main() {
     return `📈 ${x.stock}\n· ${summaries[si++]}\n🔗 ${x.article.link}`;
   });
 
-  // 2) 핫이슈 후보 수집 (최근 24시간, 카테고리별 상위 8건) → Claude가 선별
+  // 2) 핫이슈 후보 수집 → Claude가 중요도순으로 선별
+  //    구글 '주요 헤드라인'(중요도순) + 카테고리별 검색을 합치고 중복 제거
   let id = 0;
   const candidates = [];
+  const seen = new Set();
+  const addCandidate = (category, it) => {
+    const key = (it.title || "").trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ id: id++, category, ...it });
+  };
+
+  const top = await fetchTopHeadlines(24);
+  top.slice(0, 15).forEach((it) => addCandidate("주요", it));
   for (const cat of HOT_CATEGORIES) {
-    const items = (await fetchNews(cat.query, 24)).slice(0, 8);
-    for (const it of items) candidates.push({ id: id++, category: cat.name, ...it });
+    (await fetchNews(cat.query, 24)).slice(0, 5).forEach((it) =>
+      addCandidate(cat.name, it)
+    );
   }
   const issues = await selectHotIssues(candidates, MAX_HOT_ISSUES);
   const issueLines = issues.map(
