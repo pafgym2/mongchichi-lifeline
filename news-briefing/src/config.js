@@ -6,11 +6,11 @@
 // 종목을 바꾸려면 name(표시 이름)과 query(뉴스 검색어)만 수정/추가하세요.
 export const STOCKS = [
   { name: "테슬라", query: "테슬라 주가" },
-  { name: "SK하이닉스", query: "SK하이닉스" },
+  { name: "SK하이닉스", query: "SK하이닉스 주가" },
   { name: "알파벳(구글)", query: "구글 알파벳 주가" },
   { name: "메타", query: "메타 플랫폼스 주가" },
   { name: "엔비디아", query: "엔비디아 주가" },
-  { name: "삼성전자", query: "삼성전자" },
+  { name: "삼성전자", query: "삼성전자 주가" },
 ];
 
 // 매일 핫이슈를 모을 카테고리. 후보를 모은 뒤 Claude가 중요도순으로 선별합니다.

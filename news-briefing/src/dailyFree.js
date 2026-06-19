@@ -1,6 +1,6 @@
 // 무료 버전: Claude 요약 없이 헤드라인 + 링크만 라인으로 전송 (API 키 불필요)
-import { STOCKS, HOT_CATEGORIES } from "./config.js";
-import { fetchNews } from "./fetchNews.js";
+import { STOCKS } from "./config.js";
+import { fetchNews, fetchTopHeadlines } from "./fetchNews.js";
 import { pushToLine, splitText } from "./line.js";
 
 const TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -23,14 +23,11 @@ async function main() {
     );
   }
 
-  // 핫이슈: 카테고리별 최신 3건 (AI 선별 없이 최신순)
-  const issueLines = [];
-  for (const cat of HOT_CATEGORIES) {
-    const items = (await fetchNews(cat.query, 24)).slice(0, 3);
-    for (const it of items) {
-      issueLines.push(`🔥 [${cat.name}] ${it.title}\n🔗 ${it.link}`);
-    }
-  }
+  // 핫이슈: 구글 '주요 헤드라인'(중요도순) 상위 10건 (AI 선별 없음)
+  const top = await fetchTopHeadlines(24);
+  const issueLines = top
+    .slice(0, 10)
+    .map((it) => `🔥 ${it.title}\n🔗 ${it.link}`);
 
   const today = new Date().toLocaleDateString("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -38,7 +35,7 @@ async function main() {
   const header = `🆓 [무료 버전] 오늘의 뉴스 — ${today}\n(AI 요약 없이 제목+링크만)`;
   const stockSection = "━━━ 📈 보유 종목 ━━━\n\n" + stockLines.join("\n\n");
   const issueSection = issueLines.length
-    ? "━━━ 🔥 핫이슈 (최신순) ━━━\n\n" + issueLines.join("\n\n")
+    ? "━━━ 🔥 오늘의 주요 뉴스 (구글 톱) ━━━\n\n" + issueLines.join("\n\n")
     : "";
 
   const full = [header, stockSection, issueSection].filter(Boolean).join("\n\n");
