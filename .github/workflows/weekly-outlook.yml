@@ -1,0 +1,26 @@
+name: 주간 전망 브리핑
+
+on:
+  schedule:
+    # 01:00 UTC 월요일 = 한국시간(KST) 월요일 오전 10:00.
+    - cron: "0 1 * * 1"
+  workflow_dispatch: {} # 수동 실행 버튼 (테스트용)
+
+jobs:
+  outlook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 의존성 설치
+        working-directory: news-briefing
+        run: npm install
+      - name: 주간 전망 전송
+        working-directory: news-briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: node src/weekly.js
