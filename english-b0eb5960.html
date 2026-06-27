@@ -88,6 +88,32 @@
   .fontbtn{position:fixed; right:14px; bottom:16px; z-index:40; display:flex; gap:8px;}
   .fontbtn button{width:44px; height:44px; border-radius:50%; border:none; cursor:pointer; background:#fff; box-shadow:0 4px 14px rgba(0,0,0,.15); font-size:18px; font-weight:800; color:var(--pink-d);}
   .note{font-size:12.5px; color:var(--soft); text-align:center; margin:18px 0 0;}
+  /* 보상·녹음·D-day 추가 스타일 */
+  .hdrstatus{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .hdrstatus span{background:rgba(255,255,255,.22); border-radius:999px; padding:3px 11px; font-size:12.5px; font-weight:800;}
+  .hdrstatus .dday{background:#fff; color:var(--pink-d);}
+  .rec-card .rec-btns{display:flex; gap:8px; margin-top:4px;}
+  .rec-card .rec-btns button{flex:1; border:2px solid var(--blue); background:#fff; color:#2b6fd1; font-weight:800; border-radius:12px; padding:10px 0; font-size:14px; cursor:pointer;}
+  .rec-card .rec-rec{border-color:var(--pink-d); color:var(--pink-d);}
+  .rec-card .rec-btns button:disabled{opacity:.38; cursor:default;}
+  .rec-card .rec-btns button:active:not(:disabled){transform:scale(.95);}
+  .rec-card .rec-status{font-size:13px; color:var(--soft); margin-top:9px; min-height:18px; text-align:center;}
+  .rec-card .rec-hint{font-size:13px; color:var(--soft); margin:-2px 0 9px;}
+  .complete-card .complete-btn{width:100%; border:none; background:linear-gradient(135deg,#4fd1b5,#34c77b); color:#063b2a; font-weight:800; border-radius:14px; padding:14px 0; font-size:16px; cursor:pointer; box-shadow:var(--shadow);}
+  .complete-card .complete-btn:active{transform:scale(.97);}
+  .guidebox{background:linear-gradient(135deg,#fff4f9,#ffeaf3); border-radius:16px; padding:15px; margin-bottom:14px; border:1px solid var(--line);}
+  .guidebox .gstar{font-weight:800; color:var(--pink-d); font-size:15px;}
+  .guidebox .gdday{font-weight:800; margin-top:8px; color:#2b6fd1; font-size:20px; letter-spacing:-.3px;}
+  .guidebox .gdlabel{display:block; margin-top:12px; font-size:13.5px; font-weight:700; color:var(--soft);}
+  .guidebox input[type=date]{margin-left:6px; border:2px solid var(--pink); border-radius:10px; padding:6px 8px; font-size:14px; font-family:inherit; color:var(--ink);}
+  .guidebox .gweek{margin-top:12px; font-weight:800; color:#34c77b; font-size:14px;}
+  .pstrip{display:flex; flex-wrap:wrap; gap:4px; margin-top:9px;}
+  .pstrip .pcell{flex:0 0 auto; width:13%; min-width:38px; text-align:center; background:#fff; border-radius:9px; padding:5px 0; border:1px solid var(--line);}
+  .pstrip .pcell.done{background:#eafff4; border-color:#34c77b;}
+  .pstrip .pd{display:block; font-size:10px; color:var(--soft);}
+  .pstrip .pdot{font-size:13px;}
+  .toast{position:fixed; left:50%; bottom:78px; transform:translateX(-50%) translateY(20px); background:var(--pink-d); color:#fff; font-weight:800; font-size:14px; padding:11px 20px; border-radius:999px; opacity:0; transition:.25s; pointer-events:none; z-index:60; box-shadow:0 6px 18px rgba(232,90,152,.35); max-width:86vw; text-align:center;}
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -95,6 +121,7 @@
 <header>
   <h1>🗣️ 다윤이 화상영어 스크립트</h1>
   <p>하루 25분 · 매주 같은 7일을 점점 깊게 반복 · 🔊 누르면 읽어줘요</p>
+  <div class="hdrstatus" id="hdrStatus"></div>
 </header>
 
 <div class="weekbar" id="weekbar">
@@ -109,6 +136,7 @@
   <button onclick="setFont(-1)">A−</button>
   <button onclick="setFont(1)">A＋</button>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 /* ---------- 공통 워밍업 ---------- */
@@ -320,6 +348,93 @@ function speak(text, btn){
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-say]'); if(b){ e.preventDefault(); speak(b.getAttribute('data-say'), b); } });
 
+/* ---------- 공유 보상 데이터 (dayoon_reward_v2) ---------- */
+const RKEY="dayoon_reward_v2", ROLDKEY="dayoon_photo_avatar_v1";
+function rwLoad(){
+  let s={earned:0,spent:0,unlocked:[],worn:[],completed:{},testDate:null};
+  try{ const raw=localStorage.getItem(RKEY); if(raw) s=Object.assign(s,JSON.parse(raw)); }catch(e){}
+  s.unlocked=s.unlocked||[]; s.worn=s.worn||[]; s.completed=s.completed||{};
+  return s;
+}
+function rwSave(s){ try{localStorage.setItem(RKEY, JSON.stringify(s));}catch(e){} }
+function rwAvail(s){ return (s.earned||0)-(s.spent||0); }
+function rwInit(){ // 구키 1회 마이그레이션 (dayoon_reward_v2가 아직 없을 때만)
+  let exists=false; try{ exists = localStorage.getItem(RKEY)!=null; }catch(e){}
+  if(exists) return;
+  let s={earned:0,spent:0,unlocked:[],worn:[],completed:{},testDate:null};
+  try{ const o=localStorage.getItem(ROLDKEY); if(o){ const old=JSON.parse(o)||{};
+    s.earned=old.stars||0; s.unlocked=old.unlocked||[]; s.worn=old.worn||[]; } }catch(e){}
+  rwSave(s);
+}
+
+/* ---------- 날짜(KST) 유틸 ---------- */
+function kstToday(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
+function daysUntil(dateStr){ const a=Date.parse(kstToday()+'T00:00:00Z'), b=Date.parse(dateStr+'T00:00:00Z'); return Math.round((b-a)/86400000); }
+function ddayLabel(n){ return n>0?('D-'+n):(n===0?'D-DAY':('D+'+(-n))); }
+function last14(){ const base=Date.parse(kstToday()+'T00:00:00Z'); const arr=[]; for(let i=13;i>=0;i--) arr.push(new Date(base-i*86400000).toISOString().slice(0,10)); return arr; }
+function kstWeekDates(){ const base=new Date(kstToday()+'T00:00:00Z'); const offMon=(base.getUTCDay()+6)%7; const mon=base.getTime()-offMon*86400000; const arr=[]; for(let i=0;i<7;i++) arr.push(new Date(mon+i*86400000).toISOString().slice(0,10)); return arr; }
+
+/* ---------- 보상/진도 표시 ---------- */
+function starSummaryText(){ const s=rwLoad(); return `총 ⭐ ${s.earned||0}개 · 사용가능 ${rwAvail(s)}개 (꾸미기에서 사용)`; }
+function ddayText(){ const s=rwLoad(); if(!s.testDate) return '🎯 레벨테스트 날짜를 정하면 D-day가 떠요'; return `🎯 레벨테스트 ${ddayLabel(daysUntil(s.testDate))} (${s.testDate})`; }
+function weekCountText(){ const s=rwLoad(); const n=kstWeekDates().filter(d=>s.completed[d]).length; return `📈 이번 주 ${n}일 완료`; }
+function progStripHTML(){ const s=rwLoad(); return last14().map(d=>{ const done=!!s.completed[d];
+  return `<div class="pcell ${done?'done':''}"><span class="pd">${d.slice(5,7)}/${d.slice(8,10)}</span><span class="pdot">${done?'🟢':'⬜'}</span></div>`; }).join(''); }
+function updateHeader(){ const el=document.getElementById('hdrStatus'); if(!el) return; const s=rwLoad();
+  let p=[]; if(s.testDate) p.push(`<span class="dday">🎯 레벨테스트 ${ddayLabel(daysUntil(s.testDate))}</span>`);
+  p.push(`<span>⭐ 모은 ${s.earned||0} · 쓸 수 있는 ${rwAvail(s)}</span>`); el.innerHTML=p.join(''); }
+function refreshGuide(){ const gs=document.getElementById('guideStar'); if(gs) gs.textContent=starSummaryText();
+  const gd=document.getElementById('guideDday'); if(gd) gd.textContent=ddayText();
+  const ps=document.getElementById('progStrip'); if(ps) ps.innerHTML=progStripHTML();
+  const wc=document.getElementById('weekCount'); if(wc) wc.textContent=weekCountText(); }
+
+/* ---------- 토스트 ---------- */
+let toastTimer=null;
+function toast(m){ const t=document.getElementById('toast'); if(!t) return; t.textContent=m; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('on'),1800); }
+
+/* ---------- '오늘 완료' ⭐ 적립 + 레벨테스트 날짜 ---------- */
+document.addEventListener('click', e=>{
+  const cb=e.target.closest('.complete-btn'); if(!cb) return;
+  const s=rwLoad(); const today=kstToday();
+  if(s.completed[today]){ toast('오늘은 이미 받았어요 😊'); return; }
+  s.completed[today]=true; s.earned=(s.earned||0)+1; rwSave(s);
+  toast('⭐ 적립! 꾸미기에서 쓸 수 있어요'); updateHeader(); refreshGuide();
+});
+document.addEventListener('change', e=>{
+  if(e.target && e.target.id==='testDateInput'){ const s=rwLoad(); s.testDate=e.target.value||null; rwSave(s); updateHeader(); refreshGuide(); }
+});
+
+/* ---------- 발음 녹음 (MediaRecorder) ---------- */
+let mediaRecorder=null, recChunks=[], recBlobUrl=null, recAudio=null, recActiveCard=null;
+function recSupported(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
+function setRecMode(card,mode){ if(!card) return; const rec=card.querySelector('.rec-rec'), stop=card.querySelector('.rec-stop'), play=card.querySelector('.rec-play');
+  if(mode==='recording'){ rec.disabled=true; stop.disabled=false; play.disabled=true; }
+  else{ rec.disabled=false; stop.disabled=true; play.disabled=!recBlobUrl; } }
+function setRecStatus(card,m){ const s=card&&card.querySelector('.rec-status'); if(s) s.textContent=m; }
+async function recStart(card){
+  if(!recSupported()){ setRecStatus(card,'이 브라우저는 녹음을 지원하지 않아요. 크롬/사파리 최신 버전을 권장해요. 🙏'); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recChunks=[]; mediaRecorder=new MediaRecorder(stream); recActiveCard=card;
+    mediaRecorder.ondataavailable=ev=>{ if(ev.data&&ev.data.size) recChunks.push(ev.data); };
+    mediaRecorder.onstop=()=>{ stream.getTracks().forEach(t=>t.stop());
+      if(recBlobUrl) URL.revokeObjectURL(recBlobUrl);
+      recBlobUrl=URL.createObjectURL(new Blob(recChunks,{type:(mediaRecorder&&mediaRecorder.mimeType)||'audio/webm'}));
+      setRecMode(card,'idle'); document.querySelectorAll('.rec-play').forEach(b=>b.disabled=false);
+      setRecStatus(card,'녹음 완료! ▶ 듣기를 눌러보세요 🎧'); };
+    mediaRecorder.start(); setRecMode(card,'recording'); setRecStatus(card,'🔴 녹음 중… 영어로 말해보세요!');
+  }catch(err){ setRecStatus(card,'마이크를 쓸 수 없어요. 브라우저에서 마이크 권한을 허용해 주세요. 🎤'); }
+}
+function recPlay(card){ if(!recBlobUrl){ setRecStatus(card,'먼저 녹음을 해주세요 🙂'); return; }
+  if(!recAudio) recAudio=new Audio(); recAudio.src=recBlobUrl; recAudio.play(); setRecStatus(card,'▶ 재생 중…'); }
+document.addEventListener('click', e=>{
+  const card=e.target.closest('.rec-card'); if(!card) return;
+  if(e.target.closest('.rec-rec')) recStart(card);
+  else if(e.target.closest('.rec-stop')){ if(mediaRecorder&&mediaRecorder.state!=='inactive'){ try{mediaRecorder.stop();}catch(err){} } }
+  else if(e.target.closest('.rec-play')) recPlay(card);
+});
+
 /* ---------- 렌더 ---------- */
 const tabsEl=document.getElementById('tabs'), mainEl=document.getElementById('main');
 let panels=[];
@@ -327,7 +442,15 @@ function linesHTML(arr){
   return arr.map(l=>`<div class="line ${l[0].toLowerCase()}"><span class="who">${l[0]}</span>${l[1]} ${sayBtn(l[1])}<span class="ko">${l[2]}</span></div>`).join('');
 }
 function howHTML(){
-  return `<div class="howto"><h3 style="margin-top:0">🔁 이렇게 4주를 돌려요</h3>
+  return `<div class="guidebox">
+    <div class="gstar" id="guideStar">${starSummaryText()}</div>
+    <div class="gdday" id="guideDday">${ddayText()}</div>
+    <label class="gdlabel">📅 레벨테스트 날짜: <input type="date" id="testDateInput" value="${esc(rwLoad().testDate||'')}"></label>
+    <div class="gweek" id="weekCount">${weekCountText()}</div>
+    <div class="pstrip" id="progStrip">${progStripHTML()}</div>
+    <p style="font-size:12px;color:var(--soft);margin:8px 0 0">🟢 = 그날 '오늘 완료'로 ⭐을 받은 날 · 최근 14일</p>
+  </div>
+  <div class="howto"><h3 style="margin-top:0">🔁 이렇게 4주를 돌려요</h3>
   <p style="font-size:13.5px;color:var(--soft);margin-top:-4px">같은 7일인데 외우는 게 아니라 응용하게 됩니다.</p>
   <table>${HOWTO.rows.map(r=>`<tr><td class="wk">${r[0]}</td><td>${r[1]}<br><span style="color:var(--pink-d);font-weight:700;font-size:12.5px">→ ${r[2]}</span></td></tr>`).join('')}</table>
   <div class="speakhint" style="margin-top:14px">🔊 단어·문장·대사 옆 버튼을 누르면 영어 발음을 읽어줘요. (인터넷 없이 폰·컴퓨터에서 바로)</div>
@@ -342,6 +465,14 @@ function howHTML(){
 function dayHTML(d){
   let h=`<div class="daytitle"><span class="emoji">${d.emoji}</span>${d.title} <span style="font-size:14px;color:var(--soft);font-weight:600">· ${d.sub}</span></div>`;
   h+=`<div class="seg warm"><h3>☀️ 워밍업 (매일 동일)<span class="time">3분</span></h3>${linesHTML(WARMUP.lines)}</div>`;
+  h+=`<div class="seg rec-card"><h3>🎤 내 발음 녹음<span class="time" style="background:#a78bfa">연습</span></h3>
+      <p class="rec-hint">녹음 ●을 누르고 영어 문장을 말해보세요. 끝나면 정지 ■ → 듣기 ▶ 로 내 목소리를 확인!</p>
+      <div class="rec-btns">
+        <button class="rec-rec" type="button">● 녹음</button>
+        <button class="rec-stop" type="button" disabled>■ 정지</button>
+        <button class="rec-play" type="button" disabled>▶ 듣기</button>
+      </div>
+      <div class="rec-status"></div></div>`;
   if(d.interview){
     h+=`<div class="seg main"><h3>🎤 모의 인터뷰<span class="time">~20분</span></h3>
       <p style="font-size:13.5px;color:var(--soft);margin-top:0">아래에서 <b>6~7개를 골라</b> 영어로 질문 → 다윤이는 한 문장씩(가능하면 because까지) 대답.</p>
@@ -358,6 +489,9 @@ function dayHTML(d){
     h+=`<div class="seg wrap"><h3>✅ 마무리 복습<span class="time">4분</span></h3>${linesHTML(d.wrap)}<div class="stamp">도장 쾅 🟢</div></div>`;
   }
   h+=`<div class="tip">👩 <b>부모 코칭:</b> ${d.tip}</div>`;
+  h+=`<div class="seg complete-card"><h3>⭐ 오늘 영어 완료<span class="time" style="background:#34c77b">보상</span></h3>
+      <p style="font-size:13.5px;color:var(--soft);margin:-2px 0 9px">오늘 공부를 마쳤으면 눌러서 ⭐을 받으세요. 하루에 한 번만 받을 수 있어요!</p>
+      <button class="complete-btn" type="button">오늘 완료! ⭐ 받기</button></div>`;
   return h;
 }
 function addTab(label, html, active){
@@ -378,7 +512,9 @@ function loadWeek(wi){
   WEEKS[wi].forEach((d,i)=> addTab(`${d.emoji} D${i+1}`, dayHTML(d), false));
   window.scrollTo({top:0,behavior:'smooth'});
 }
+rwInit();
 loadWeek(0);
+updateHeader();
 
 /* 글자 크기 */
 let fs=17;

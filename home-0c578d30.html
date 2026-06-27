@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>몽치치 패밀리 — 메뉴</title>
+<style>
+  :root{
+    --bg:#fff7fb; --card:#ffffff; --ink:#33303a; --soft:#7a7686;
+    --pink:#ff7eb3; --pink-d:#e85a98; --line:#f0e6ee; --shadow:0 8px 22px rgba(232,90,152,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(circle at 50% -10%,#ffe3f0,transparent 55%),var(--bg);
+    color:var(--ink); line-height:1.6; padding:0 16px 48px;
+  }
+  header{text-align:center; padding:46px 8px 26px;}
+  header .logo{font-size:46px; line-height:1;}
+  header h1{margin:12px 0 4px; font-size:25px; font-weight:800; letter-spacing:-.5px; color:var(--pink-d);}
+  header p{margin:0; font-size:14px; color:var(--soft);}
+  main{max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:16px;}
+  .card{
+    display:flex; align-items:center; gap:16px; text-decoration:none; color:inherit;
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:20px 18px; box-shadow:var(--shadow); transition:.15s;
+  }
+  .card:active{transform:scale(.98);}
+  .card .emoji{font-size:38px; line-height:1; flex:0 0 auto; width:62px; height:62px; display:flex; align-items:center; justify-content:center; border-radius:18px; background:linear-gradient(135deg,#fff0f7,#ffe3ef);}
+  .card .txt{flex:1;}
+  .card .tt{font-size:18px; font-weight:800; letter-spacing:-.3px;}
+  .card .ds{font-size:13px; color:var(--soft); margin-top:2px;}
+  .card .arrow{font-size:20px; color:var(--pink); font-weight:800;}
+  .card.english .emoji{background:linear-gradient(135deg,#eaf4ff,#d9ecff);}
+  .card.reward .emoji{background:linear-gradient(135deg,#fff0f7,#ffd9ec);}
+  .card.family .emoji{background:linear-gradient(135deg,#eafff4,#d4f7e6);}
+  footer{text-align:center; margin-top:30px; font-size:12px; color:var(--soft);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🌸</div>
+  <h1>몽치치 패밀리</h1>
+  <p>오늘은 뭐 할까요? 아래에서 골라요 💕</p>
+</header>
+<main>
+  <a class="card english" href="/english-b0eb5960">
+    <span class="emoji">🗣️</span>
+    <span class="txt"><span class="tt">영어 학습</span><span class="ds">화상영어 스크립트 · 발음 듣기·녹음 · ⭐ 모으기</span></span>
+    <span class="arrow">›</span>
+  </a>
+  <a class="card reward" href="/reward-b0eb5960">
+    <span class="emoji">🎀</span>
+    <span class="txt"><span class="tt">꾸미기 보상</span><span class="ds">모은 ⭐로 내 사진을 예쁘게 꾸며요</span></span>
+    <span class="arrow">›</span>
+  </a>
+  <a class="card family" href="/">
+    <span class="emoji">👨‍👩‍👧</span>
+    <span class="txt"><span class="tt">가족 타임라인</span><span class="ds">우리 가족의 소중한 순간들</span></span>
+    <span class="arrow">›</span>
+  </a>
+</main>
+<footer>몽치치 패밀리 · 오늘도 행복하게 🌷</footer>
+</body>
+</html>

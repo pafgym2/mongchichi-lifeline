@@ -74,13 +74,16 @@ async function main() {
   const ownerBlocks = [];
   const movers = [];
   const allPositions = [];
+  const weeklyOwners = [];
 
   for (const o of OWNERS) {
     let oEval = 0, oCost = 0;
     const acctLines = [];
+    const wAccts = [];
     for (const acc of o.accounts) {
       let aEval = 0, aCost = 0;
       const lines = [];
+      const wPos = [];
       for (const p of acc.positions) {
         let pr;
         try {
@@ -96,14 +99,20 @@ async function main() {
         lines.push(`· ${p.name} ${pct(ret)} (${won(ev)})`);
         movers.push({ owner: o.owner, name: p.name, ret });
         allPositions.push({ owner: o.owner, name: p.name, ev, retPct: ret, dayPct: pr.dayPct ?? null });
+        wPos.push({ name: p.name, ret, ev });
       }
       oEval += aEval; oCost += aCost;
       const aRet = aCost > 0 ? ((aEval - aCost) / aCost) * 100 : 0;
       acctLines.push(`〔${acc.account}〕 ${won(aEval)} (${pct(aRet)})\n${lines.join("\n")}`);
+      const wLines = wPos
+        .sort((a, b) => b.ret - a.ret)
+        .map((p) => `· ${p.name} ${pct(p.ret)} (${won(p.ev)})`);
+      wAccts.push(`〔${acc.account}〕 ${won(aEval)} (${pct(aRet)})\n${wLines.join("\n")}`);
     }
     gEval += oEval; gCost += oCost;
     const oRet = oCost > 0 ? ((oEval - oCost) / oCost) * 100 : 0;
     ownerBlocks.push(`👤 ${o.owner} — ${won(oEval)} · ${pct(oRet)}\n${acctLines.join("\n\n")}`);
+    weeklyOwners.push(`👤 ${o.owner} — ${won(oEval)} · ${pct(oRet)}\n${wAccts.join("\n\n")}`);
   }
 
   const gRet = gCost > 0 ? ((gEval - gCost) / gCost) * 100 : 0;
@@ -148,6 +157,14 @@ async function main() {
       + bigMoves.map((p) => `${p.dayPct >= 0 ? "▲" : "▼"} ${p.name}(${p.owner}) 당일 ${pct(p.dayPct)}`).join("\n");
   }
 
+  // 월요일이면 주간 정리(전 종목 스냅샷) 추가
+  let weeklySec = "";
+  const kstWeekday = new Date().toLocaleDateString("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
+  if (kstWeekday === "Mon") {
+    weeklySec = "━━━ 📅 주간 정리 ━━━\n현재 스냅샷 전체 정리 — 소유자·계좌별 전 종목 (누적수익률 · 평가액)\n\n"
+      + weeklyOwners.join("\n\n");
+  }
+
   const pension =
     "━━━ 💰 알림 ━━━\n" +
     `김경아 DC형 퇴직연금 ${won(CASH_NOTES.dcPensionKRW)} 전액 미투자(현금성) 상태입니다.`;
@@ -155,7 +172,7 @@ async function main() {
   const foot = "※ 정보 제공용이며 투자 조언이 아닙니다. 거래 전 증권사 앱에서 시세를 확인하세요."
     + (failed.length ? `\n⚠️ 시세 조회 실패: ${failed.join(", ")}` : "");
 
-  const full = [header, summary, ...ownerBlocks, moversSec, concentrationSec, bigMoveSec, pension, foot]
+  const full = [header, summary, ...ownerBlocks, moversSec, concentrationSec, bigMoveSec, weeklySec, pension, foot]
     .filter(Boolean).join("\n\n");
   await pushToLine(TOKEN, USER_ID, splitText(full, 4500));
   console.log("포트폴리오 리포트 전송 완료" + (failed.length ? ` (실패 ${failed.length})` : ""));
