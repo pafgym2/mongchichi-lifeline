@@ -73,6 +73,7 @@ async function main() {
   let gEval = 0, gCost = 0;
   const ownerBlocks = [];
   const movers = [];
+  const allPositions = [];
 
   for (const o of OWNERS) {
     let oEval = 0, oCost = 0;
@@ -94,6 +95,7 @@ async function main() {
         aEval += ev; aCost += co;
         lines.push(`· ${p.name} ${pct(ret)} (${won(ev)})`);
         movers.push({ owner: o.owner, name: p.name, ret });
+        allPositions.push({ owner: o.owner, name: p.name, ev, retPct: ret, dayPct: pr.dayPct ?? null });
       }
       oEval += aEval; oCost += aCost;
       const aRet = aCost > 0 ? ((aEval - aCost) / aCost) * 100 : 0;
@@ -122,6 +124,30 @@ async function main() {
     .map((m) => `▼ ${m.name}(${m.owner[0]}) ${pct(m.ret)}`);
   const moversSec = "━━━ 📈 수익률 상·하위 ━━━\n" + up.join("\n") + "\n" + down.join("\n");
 
+  // 집중도 경고: 가구 총 평가액 대비 비중 25% 이상 종목
+  let concentrationSec = "";
+  if (gEval > 0) {
+    const heavy = allPositions
+      .map((p) => ({ ...p, weight: (p.ev / gEval) * 100 }))
+      .filter((p) => p.weight >= 25)
+      .sort((a, b) => b.weight - a.weight);
+    if (heavy.length) {
+      concentrationSec = "━━━ ⚠️ 집중도 ━━━\n"
+        + heavy.map((p) => `${p.name}(${p.owner}) — 비중 ${Math.round(p.weight)}% (${won(p.ev)})`).join("\n")
+        + "\n한 종목 비중이 높아요. 분산 상태를 참고하세요.";
+    }
+  }
+
+  // 당일 급등락: dayPct 절대값 5% 이상 종목 (등락 큰 순)
+  let bigMoveSec = "";
+  const bigMoves = allPositions
+    .filter((p) => p.dayPct != null && Math.abs(p.dayPct) >= 5)
+    .sort((a, b) => Math.abs(b.dayPct) - Math.abs(a.dayPct));
+  if (bigMoves.length) {
+    bigMoveSec = "━━━ 📊 오늘 큰 변동 ━━━\n"
+      + bigMoves.map((p) => `${p.dayPct >= 0 ? "▲" : "▼"} ${p.name}(${p.owner}) 당일 ${pct(p.dayPct)}`).join("\n");
+  }
+
   const pension =
     "━━━ 💰 알림 ━━━\n" +
     `김경아 DC형 퇴직연금 ${won(CASH_NOTES.dcPensionKRW)} 전액 미투자(현금성) 상태입니다.`;
@@ -129,7 +155,8 @@ async function main() {
   const foot = "※ 정보 제공용이며 투자 조언이 아닙니다. 거래 전 증권사 앱에서 시세를 확인하세요."
     + (failed.length ? `\n⚠️ 시세 조회 실패: ${failed.join(", ")}` : "");
 
-  const full = [header, summary, ...ownerBlocks, moversSec, pension, foot].join("\n\n");
+  const full = [header, summary, ...ownerBlocks, moversSec, concentrationSec, bigMoveSec, pension, foot]
+    .filter(Boolean).join("\n\n");
   await pushToLine(TOKEN, USER_ID, splitText(full, 4500));
   console.log("포트폴리오 리포트 전송 완료" + (failed.length ? ` (실패 ${failed.length})` : ""));
 }
