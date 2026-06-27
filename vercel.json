@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/news-briefing/:path*",
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
