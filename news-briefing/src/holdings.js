@@ -41,7 +41,7 @@ export const OWNERS = [
     owner: "김경아",
     accounts: [
       {
-        account: "타사 계좌 161-119516",
+        account: "타사 증권계좌",
         positions: [
           { name: "블리츠웨이엔터", ticker: "369370", market: "KR", shares: 67760, avgKRW: 395 },
         ],
